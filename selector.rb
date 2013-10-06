@@ -3,8 +3,8 @@
 require 'gtk2'
 
 class Parser
-  DB = 'metadata.csv'
-  HEADERS = [:title, :season, :episode, :filename, :chapter, :audio_de, :audio_en, :subtitle_de, :subtitle_en]
+  DB = '/musik/dvd/metadata.csv'
+  HEADERS = [:title, :season, :episode, :filename, :dvd_title]
 
   attr_accessor :data
 
@@ -13,25 +13,21 @@ class Parser
     csv.shift # skip header
     csv.delete_if {|line| line.strip == ""}
     csv.map! {|line| line.strip } # skip trailing whitespace
-    csv.map! {|line| line.split(',').map {|item| item.strip } }
+    csv.map! {|line| line.split(';').map {|item| item.strip } }
     @data = []
     csv.each do |entry|
       @data << Hash[HEADERS.zip(entry)]
     end
-    puts @data.inspect
   end
 end
 
 class Ui
   CONFIG=`echo -n $HOME` + "/.dvdcollection"
+  MOUNTPOINT="/musik/dvd/mount"
 
   def fill_node(node, entry)
     node[1] = entry[:filename]
-    node[2] = entry[:chapter]
-    node[3] = entry[:audio_de]
-    node[4] = entry[:audio_en]
-    node[5] = entry[:subtitle_de]
-    node[6] = entry[:subtitle_en]
+    node[2] = entry[:dvd_title]
   end
 
   # returns :de, :en or nil
@@ -82,10 +78,12 @@ class Ui
         current_season[0] = entry[:season]
         fill_node(current_season, entry)
       end
-          
-      node = treestore.append(current_season)
-      node[0] = entry[:episode]
-      fill_node(node, entry)
+      
+      if !entry[:episode].empty? then
+        node = treestore.append(current_season)
+        node[0] = entry[:episode]
+        fill_node(node, entry)
+      end
     end
 
     treeview = Gtk::TreeView.new(treestore)
@@ -129,28 +127,19 @@ class Ui
     play.signal_connect("clicked") do
       node = treeview.selection.selected
 
-      language = get_language(audio_de)
-      if language == :de
-        audio = node[3]
-      elsif language == :en
-        audio = node[4]
-      end
+      audio_language = get_language(audio_de)
 
-      language = get_language(subtitle_off)
-      if language == :de
-        subtitle = node[5]
-      elsif language == :en
-        subtitle = node[6]
+      subtitle_language = get_language(subtitle_off)
+
+      cmd  = "fuseiso #{node[1]} #{MOUNTPOINT}"
+      cmd += " && mplayer -dvd-device #{MOUNTPOINT} dvd://#{node[2]} -fs -alang #{audio_language.to_s}"
+      if subtitle_language then
+        cmd += " -slang #{subtitle_language.to_s}"
       else
-        subtitle = nil
+        cmd += " -sid 999"
       end
-
-      cmd = "mplayer #{node[1]} -chapter #{node[2]} -fs -aid #{audio}"
-      if subtitle then
-        cmd += " -sid #{subtitle}"
-      end
-      # vobsubid, slang, alang
-      #system(cmd)
+      cmd += "; fusermount -u #{MOUNTPOINT}"
+      system(cmd)
       puts cmd
     end
     vbox.pack_end(play, false, false)
