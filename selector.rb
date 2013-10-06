@@ -23,7 +23,7 @@ class Parser
 end
 
 class Ui
-  CONFIG="/home/hjvm/.foo"
+  CONFIG=`echo -n $HOME` + "/.dvdcollection"
 
   def fill_node(node, entry)
     node[1] = entry[:filename]
@@ -62,7 +62,6 @@ class Ui
   end
 
   def initialize
-#    treestore = Gtk::TreeStore.new(String, String, Integer, Integer, Integer, Integer, Integer)
     treestore = Gtk::TreeStore.new(String, String, String, String, String, String, String)
 
     current_title = current_season = nil
@@ -120,10 +119,11 @@ class Ui
     vbox.pack_start(subtitle_de, false, false)
     vbox.pack_start(subtitle_en, false, false)
 
-    config = File.read(CONFIG).strip.split(",").map {|i| i.to_sym }
-    puts config.inspect
-    set_language(audio_de, config[0])
-    set_language(subtitle_off, config[1])
+    if File.exists? CONFIG then
+      config = File.read(CONFIG).strip.split(",").map {|i| i.to_sym }
+      set_language(audio_de, config[0])
+      set_language(subtitle_off, config[1])
+    end
 
     play = Gtk::Button.new('Starten')
     play.signal_connect("clicked") do
