@@ -48,9 +48,9 @@ class Ui
   def set_language(radio, language)
     radio.group.each do |r|
       if r.label =~ /DE/ then
-        r.active = true if language == :de
+        r.active = true if language == 'de'
       elsif r.label =~ /EN/ then
-        r.active = true if language == :en
+        r.active = true if language == 'en'
       else
         r.active = true if not language
       end
@@ -58,6 +58,12 @@ class Ui
   end
 
   def initialize
+    if File.exists? CONFIG then
+      config = File.read(CONFIG).strip.split(",")
+    else
+      config = []
+    end
+
     treestore = Gtk::TreeStore.new(String, String, String, String, String, String, String)
 
     current_title = current_season = nil
@@ -91,10 +97,17 @@ class Ui
     treeview.set_headers_visible(false)
     treeview.selection.mode = Gtk::SELECTION_BROWSE
 
-    iter = treestore.iter_first
-    begin
-      treeview.expand_row(iter.path, false)
-    end while iter.next!
+    if config[2] then
+      # expand to previous path
+      treeview.expand_to_path(Gtk::TreePath.new(config[2]))
+	    treeview.selection.select_path(Gtk::TreePath.new(config[2]))
+	  else
+			# expand first level of nodes
+		  iter = treestore.iter_first
+		  begin
+		    treeview.expand_row(iter.path, false)
+		  end while iter.next!
+	  end
 
     hbox = Gtk::HBox.new
     scroll_area = Gtk::ScrolledWindow.new
@@ -117,11 +130,8 @@ class Ui
     vbox.pack_start(subtitle_de, false, false)
     vbox.pack_start(subtitle_en, false, false)
 
-    if File.exists? CONFIG then
-      config = File.read(CONFIG).strip.split(",").map {|i| i.to_sym }
-      set_language(audio_de, config[0])
-      set_language(subtitle_off, config[1])
-    end
+    set_language(audio_de, config[0])
+    set_language(subtitle_off, config[1])
 
     play = Gtk::Button.new('Starten')
     play.signal_connect("clicked") do
@@ -149,7 +159,7 @@ class Ui
     window.add(hbox)
 
     window.signal_connect("destroy") do
-      system("echo \"#{get_language(audio_de)},#{get_language(subtitle_off)}\" > #{CONFIG}")
+      system("echo \"#{get_language(audio_de)},#{get_language(subtitle_off)},#{treeview.selection.selected.path}\" > #{CONFIG}")
       Gtk.main_quit
     end
 
