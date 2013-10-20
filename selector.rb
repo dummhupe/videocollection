@@ -4,7 +4,7 @@ require 'gtk2'
 
 class Parser
   DB = '/musik/dvd/metadata.csv'
-  HEADERS = [:title, :season, :episode, :filename, :dvd_title]
+  HEADERS = [:title, :season, :episode, :filename, :dvd_title, :dvd_chapter]
 
   attr_accessor :data
 
@@ -28,6 +28,7 @@ class Ui
   def fill_node(node, entry)
     node[1] = entry[:filename]
     node[2] = entry[:dvd_title]
+    node[3] = entry[:dvd_chapter]
   end
 
   # returns :de, :en or nil
@@ -148,9 +149,12 @@ class Ui
       else
         cmd += " -sid 999"
       end
+      if node[3] and node[3] != "" then
+        cmd += " -chapter #{node[3]}"
+      end
       cmd += "; fusermount -u #{MOUNTPOINT}"
-      system(cmd)
       puts cmd
+      system(cmd)
     end
     vbox.pack_end(play, false, false)
 
