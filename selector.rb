@@ -102,6 +102,7 @@ class Ui
       # expand to previous path
       treeview.expand_to_path(Gtk::TreePath.new(config[2]))
 	    treeview.selection.select_path(Gtk::TreePath.new(config[2]))
+	    treeview.scroll_to_cell(Gtk::TreePath.new(config[2]), nil, false, 0, 0)
 	  else
 			# expand first level of nodes
 		  iter = treestore.iter_first
