@@ -4,7 +4,7 @@ require 'gtk2'
 
 class Parser
   DB = '/musik/dvd/metadata.csv'
-  HEADERS = [:title, :season, :episode, :filename, :dvd_title, :dvd_chapter]
+  HEADERS = [:title, :season, :episode, :filename, :dvd_title, :dvd_chapter, :player]
 
   attr_accessor :data
 
@@ -29,6 +29,7 @@ class Ui
     node[1] = entry[:filename]
     node[2] = entry[:dvd_title]
     node[3] = entry[:dvd_chapter]
+    node[4] = entry[:player]
   end
 
   # returns :de, :en or nil
@@ -143,17 +144,25 @@ class Ui
 
       subtitle_language = get_language(subtitle_off)
 
-      cmd  = "fuseiso #{node[1]} #{MOUNTPOINT}"
-      cmd += " && mplayer -dvd-device #{MOUNTPOINT} dvd://#{node[2]} -fs -alang #{audio_language.to_s}"
-      if subtitle_language then
-        cmd += " -slang #{subtitle_language.to_s}"
-      else
-        cmd += " -sid 999"
+      case node[4]
+        when 'vlc'
+          cmd = "cvlc dvd://#{node[1]}\##{node[2]}"
+          if node[3] and node[3] != "" then
+            cmd += ":{node[3]}"
+          end
+        else
+          cmd  = "fuseiso #{node[1]} #{MOUNTPOINT}"
+          cmd += " && mplayer -dvd-device #{MOUNTPOINT} dvd://#{node[2]} -fs -alang #{audio_language.to_s}"
+          if subtitle_language then
+            cmd += " -slang #{subtitle_language.to_s}"
+          else
+            cmd += " -sid 999"
+          end
+          if node[3] and node[3] != "" then
+            cmd += " -chapter #{node[3]}"
+          end
+          cmd += "; fusermount -u #{MOUNTPOINT}"
       end
-      if node[3] and node[3] != "" then
-        cmd += " -chapter #{node[3]}"
-      end
-      cmd += "; fusermount -u #{MOUNTPOINT}"
       puts cmd
       system(cmd)
     end
