@@ -164,7 +164,7 @@ class Ui
           cmd += "; fusermount -u #{MOUNTPOINT}"
       end
       puts cmd
-      system(cmd)
+      Thread.new { system(cmd) }
     end
     vbox.pack_end(play, false, false)
 
